@@ -1,0 +1,221 @@
+//GEIST FORCE
+//Miff template
+//By Sifting, 2022
+
+BigEndian ();
+
+//Ensure that the file is a miff
+char magick[4];
+if (magick != "MIFF")
+{
+    Error ("NOT A MIFF!");
+}
+uint32 size;        //Size of the entire file
+char endian[4];     //Only Litl encoutnered - endian mode for file contents
+
+//Each record seems to be prefixed with this
+struct Record_info
+{
+    float unk;
+    float unk;
+    uint32 len;
+    char name[len];
+    uint32 mfln;
+    char mfl[mfln];
+};
+
+//MAct data
+struct Action_entry
+{
+    uint32 unk;
+    float frame;
+    uint32 unk;
+    uint32 len;
+    char name[len];
+};
+struct Record_action
+{
+    uint32 count;
+    local int i = 0;
+    while (i++ < count)
+    {
+        Action_entry entries;
+    }
+};
+
+//MCls data
+struct Cls_pair
+{
+    uint32 vertex; //I think?
+    float bias; //How much the vertex is influenced by the node
+};
+struct Record_cls
+{
+    uint32 count;
+    local int i = 0;
+    while (i++ < count)
+    {
+        Cls_pair pairs;
+    }
+    uint32 len;
+    char node[len];
+    uint32 unk;
+};
+
+struct Texture
+{
+    uint32 unk;
+    uint32 unk;
+    float funk[18];
+};
+struct Record_tex
+{
+    uint32 unk;
+    uint32 unk;
+    uint32 unk;
+    uint32 unk;
+    uint32 unk;
+    uint32 unk;
+    uint32 blen;
+    char bitmap[blen];
+    uint32 unk;
+    uint32 unk;
+    uint32 unk;
+    uint32 unk;
+    float unk;
+    float unk;
+    float unk;
+    float unk;
+    float unk;
+    Texture tunk[2];
+};
+
+struct Record_bmp
+{
+    ubyte f0, unk, unk, f1;
+    uint32 unk;
+    uint32 width;
+    uint32 height;
+    uint32 unk;
+};
+
+struct Record_mch
+{
+    uint32 count0;
+    uint32 count1;
+    float funk0[count0];
+    float funk1[4*count1];
+
+    uint32 mlen;
+    char mdl[mlen];
+    uint32 unk;
+    uint32 plen;
+    char parent[plen];
+    float param[4];
+};
+
+struct Vertex
+{
+    uint16 point;       //Which vertex. High bit may be set for some reason - forgot why
+    uint16 flags;       //Properties for each face in the strip
+    float u, v;         
+    uint32 unk;         //Unsure what this is.
+    float a, r, g, b;   //I think
+};
+struct Point
+{
+    float x, y, z;
+};
+struct Normal
+{
+    float x, y, z, w;
+};
+struct Strip
+{
+    uint32 unk;
+    uint32 unk;
+    uint32 mlen;
+    char material[mlen];
+    uint32 unk;
+
+    uint32 count;
+    Vertex verts[count];
+
+    uint32 npunk;
+    Point punk[npunk];
+
+    uint32 nnormals;
+    Point normals[nnormals];
+
+    uint32 unk;
+    uint32 unk;
+    uint32 unk;
+};
+struct Record_mdl
+{
+    uint32 unk;
+    uint32 nstrips;
+    
+    local uint32 i = 0;
+    for (i = 0; i < nstrips; i++) Strip strips;
+
+    //Row major, no surprises :>
+    uint32 npoints;
+    Point points[npoints];
+
+    //Bounding box, I guess?
+    uint32 unk;
+    Point mins;
+    Point maxs;
+};
+
+
+//Record framing
+struct Record
+{
+    char type[4];
+    uint32 size;
+    
+    //Records may be little endian
+    if ("Litl" == endian)
+    {
+        LittleEndian ();
+    }
+
+    Record_info info;
+    if ("MAct" == type) Record_action action;
+    else if ("MCls" == type) Record_cls cls;
+    //else if ("MHch" == type) Record_mch mch;
+    else if ("MBmp" == type)
+    {
+        Record_bmp bmp;
+        byte bmp_data[size - sizeof(info) - sizeof (bmp)];
+        Printf ("BMP:%s: %ix%i\n", info.name, bmp.width, bmp.height);
+        Printf ("rgb565: %i\n", 2*bmp.width*bmp.height);
+        Printf ("vq: %i\n", bmp.width*bmp.height/4 + 2048);
+        Printf ("size of contents: %i\n", sizeof (bmp_data));
+    }
+    else if ("MMdl" == type)
+    {
+        Record_mdl mdl;
+    }
+    else byte data[size - sizeof(info)];
+
+    BigEndian ();
+};
+
+//Parse the file
+local int _record_header_size = 8;
+local int _header_size = 12; 
+local int _read = size - _header_size;
+while (0 < _read)
+{
+    Record record;
+    _read -= record.size + _record_header_size;
+    Printf ("Read %i (%i)\n", record.size, _read);
+} 
+
+
+
+
+
